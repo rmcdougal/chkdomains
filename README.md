@@ -1,0 +1,2 @@
+# chkdomains
+First Script
