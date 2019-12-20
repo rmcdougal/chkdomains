@@ -55,8 +55,7 @@ sub cp_domains {
 	open(my $fh, $domainFile) or die "Coult not open file '$domainFile'";
 		while (my $row = <$fh>) {
 			chomp $row;
-			my $domain = split /:/, $row;
-			my %domain_hash{$domain}; #Not working
+			print "$row"."\n";
 		}		
 }
 
