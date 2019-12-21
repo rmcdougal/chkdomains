@@ -16,7 +16,6 @@ $Term::ANSIColor::AUTORESET = 1;
 my $domainFile = '/etc/userdomains';
 my $iscPanel = '/usr/local/cpanel/version';
 
-
 if (-e $domainFile && -e $iscPanel ) {
 	
 	print_information("This is a cPanel server");
@@ -27,9 +26,10 @@ if (-e $domainFile && -e $iscPanel ) {
 
 }
 
-cp_domains();
-resolve_domain();
 
+#Executing main functions
+
+resolve_domain(cp_domains());
 
 #Pretty printing
 
@@ -61,15 +61,14 @@ sub cp_domains {
 		while (my $row = <$fh>) {
 			chomp $row;
 			my @domain = split /:/, $row;
-			#print "$domain[0]"."\n";
-			#resolve_domain($domain[0]);
-			return ($domain[0]);
-		}		
+			#print Dumper @domain[0];
+			resolve_domain($domain[0]);	
+	}		
+	close($fh);
 }
 
+
 #Resolving the domain
-
-
 
 sub resolve_domain {
 
@@ -77,11 +76,10 @@ my $name_server1 = '8.8.8.8';
 my $name_server2 = '8.8.4.4';
 
 	#for test
-	my $domain = cp_domains();
-	print Dumper $domain;
 	my $res = Net::DNS::Resolver->new;
-	my $query = $res->search($domain);
- 	my $result;
+	my $query = $res->search(@_);
+ 	#print Dumper $query;
+	my $result;
 
 		if($query) {
 			
@@ -94,12 +92,15 @@ my $name_server2 = '8.8.4.4';
 				}
 				
 				if($result) {
-				
-					say $result;
-
+			
+					print_information("@_ : $result");	
+					return $result;
 				} else { say "FAILED";   }
 								
 			}
 		}		
 }
+
+#Get server's IP
+
 
