@@ -7,6 +7,7 @@ use warnings;
 use Data::Dumper;
 use Net::DNS::Resolver;
 use Term::ANSIColor qw(:constants);
+use Net::Address::IP::Local;
 
 #Reset the terminal to default colors when finished.
 $Term::ANSIColor::AUTORESET = 1;
@@ -61,10 +62,10 @@ sub cp_domains {
 		while (my $row = <$fh>) {
 			chomp $row;
 			my @domain = split /:/, $row;
-			#print Dumper @domain[0];
+			print Dumper @domain[0];
 			resolve_domain($domain[0]);	
 	}		
-	close($fh);
+	#close($fh);
 }
 
 
@@ -93,9 +94,13 @@ my $name_server2 = '8.8.4.4';
 				
 				if($result) {
 			
-					print_information("@_ : $result");	
-					return $result;
-				} else { say "FAILED";   }
+						if($result eq get_servip()) {
+						print_information("@_ : $result is hosted locally");	
+						return $result;
+											
+					}
+
+				} else { print_warning("Pointing to a different server");   }
 								
 			}
 		}		
@@ -103,4 +108,9 @@ my $name_server2 = '8.8.4.4';
 
 #Get server's IP
 
+sub get_servip {
+
+	my $ipv4_address = Net::Address::IP::Local->public_ipv4;
+	#return $ipv4_address;
+}
 
