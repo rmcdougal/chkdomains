@@ -62,9 +62,9 @@ sub cp_domains {
 		while (my $row = <$fh>) {
 			chomp $row;
 			my @domain = split /:/, $row;
-			print Dumper @domain[0];
+			#print Dumper @domain[0];
 			resolve_domain($domain[0]);	
-	}		
+		}
 	#close($fh);
 }
 
@@ -95,12 +95,10 @@ my $name_server2 = '8.8.4.4';
 				if($result) {
 			
 						if($result eq get_servip()) {
-						print_information("@_ : $result is hosted locally");	
+						print_information(" @_ : $result is hosted locally.");	
 						return $result;
-											
-					}
-
-				} else { print_warning("Pointing to a different server");   }
+						} else { print_warning(" @_ : $result points to a different server."); }						
+				} else { print_warning("Could retreive DNS records");   }
 								
 			}
 		}		
