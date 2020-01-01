@@ -19,7 +19,6 @@ my $iscPanel = '/usr/local/cpanel/version';
 
 if (-e $domainFile && -e $iscPanel ) {
 	
-	print_information("This is a cPanel server");
 	my $iscP='1';
 
 } else {
@@ -62,10 +61,9 @@ sub cp_domains {
 		while (my $row = <$fh>) {
 			chomp $row;
 			my @domain = split /:/, $row;
-			#print Dumper @domain[0];
 			resolve_domain($domain[0]);	
 		}
-	#close($fh);
+	close($fh);
 }
 
 
@@ -76,10 +74,8 @@ sub resolve_domain {
 my $name_server1 = '8.8.8.8';
 my $name_server2 = '8.8.4.4';
 
-	#for test
 	my $res = Net::DNS::Resolver->new;
 	my $query = $res->search(@_);
- 	#print Dumper $query;
 	my $result;
 
 		if($query) {
@@ -98,7 +94,7 @@ my $name_server2 = '8.8.4.4';
 						print_information(" @_ : $result is hosted locally.");	
 						return $result;
 						} else { print_warning(" @_ : $result points to a different server."); }						
-				} else { print_warning("Could retreive DNS records");   }
+				} else { print_warning("Could not retreive DNS records");   }
 								
 			}
 		}		
@@ -109,6 +105,5 @@ my $name_server2 = '8.8.4.4';
 sub get_servip {
 
 	my $ipv4_address = Net::Address::IP::Local->public_ipv4;
-	#return $ipv4_address;
 }
 
