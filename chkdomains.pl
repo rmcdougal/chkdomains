@@ -1,15 +1,12 @@
 #!/usr/bin/perl
 
 #Module declaration
-use v5.16;
 use strict;
 use warnings;
 use Data::Dumper;
-use Net::DNS::Resolver;
 use Term::ANSIColor qw(:constants);
-use Net::Address::IP::Local;
-use LWP::Simple;
-use Net::IP;
+use Net::DNS;
+use IO::Interface::Simple;
 
 #Reset the terminal to default colors when finished.
 $Term::ANSIColor::AUTORESET = 1;
@@ -25,12 +22,14 @@ if (-e $domainFile && -e $iscPanel ) {
   my $iscP='1'; #For later use.
 
 } else {
+
     print_warning("This script is only useful on cPanel servers with valid domains");
+
 }
 
 #Executing main functions
 
-resolve_domain(cp_domains());
+resolve_domains(cp_domains(compare_domain()));
 
 #Pretty printing
 
@@ -52,59 +51,68 @@ sub print_information {
 
 }
 
+
+#Compare domain's IP
+
+compare_domain();
+
+sub compare_domain {
+    my $dip = shift @_;
+    my $sip = shift @_;
+
+}
+
+#Resolve domains
+
+sub resolve_domains {
+    my @domain = @_;
+    my $nameserver = '8.8.8.8';
+    my $resolver = Net::DNS::Resolver->new;
+    my $query;
+    my $ip;
+
+    foreach(@domain) {
+
+        $query = $resolver->search($_);    
+        if($query) {
+            foreach my $rr($query->answer) {
+                if($rr->type eq "A") {
+                    my $ip = $rr->address;
+                    compare_domain($ip);
+                    next;
+                }
+
+            }    
+        }
+    }    
+}
+
 #Get domains into hash
 
 sub cp_domains {
-    
     open(my $fh, $domainFile) or die "Coult not open file '$domainFile'";
         while (my $row = <$fh>) {
           chomp $row;
           my @domain = split /:/, $row;
-          resolve_domain($domain[0]);   
+          resolve_domains($domain[0]);   
         }
     close($fh);
-}
-
-
-#Resolving the domain
-
-sub resolve_domain {
-
-    my $res = Net::DNS::Resolver->new;
-    my $query = $res->search(@_);
-    my $result;
-
-    if($query) {
-            
-     foreach my $rr ($query->answer) {
-                
-          if($rr->type eq "A") {            
-          $result = $rr->address;   
-      }
-                
-      if($result) {     
-        if($result eq get_servip()) {
-            print_information(" @_ : $result is hosted locally.");  
-        }    
-       else {           
-
-            print_warning(" @_ : $result points to a remote server.."); 
-
-        }                       
-      } 
-       else { 
-            
-            print_warning("Could not retreive the A record for the domain.");   
-            
-            }                           
-        }
-    }       
 }
 
 #Get server's IP
 
 sub get_servip {
+   
+    my @public_ip = ();
+    my @ips = ();
+    my @interfaces = IO::Interface::Simple->interfaces;
+    for my $if (@interfaces) {
+        push(@ips, $if->address); 
+    }
+    return unless @public_ip = grep(!/127\.0\.0\.1/, @ips);
+    compare_domain(@public_ip);
 
-    my $ipv4_address = Net::Address::IP::Local->public_ipv4;
 }
+
+
 
