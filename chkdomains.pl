@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/local/cpanel/3rdparty/bin/perl
 
 #Module declaration
 use strict;
@@ -29,7 +29,6 @@ if (-e $domainFile && -e $iscPanel ) {
 
 #Executing main functions
 
-resolve_domains(cp_domains(compare_domain()));
 
 #Pretty printing
 
@@ -57,19 +56,30 @@ sub print_information {
 compare_domain();
 
 sub compare_domain {
-    my $dip = shift @_;
-    my $sip = shift @_;
+  
+    my %domain_and_remote_ips = resolve_domains();
+    my @server_ips = get_servip();
+    #my @domains = cp_domains();
 
+    foreach my $domain(keys %domain_and_remote_ips) {  
+    
+        foreach my $server_ip(@server_ips) {
+        if($domain_and_remote_ips{$domain} eq $server_ip) {
+
+            print $domain_and_remote_ips{$domain}."$domain";
+        }
+      }
+    }   
 }
 
 #Resolve domains
 
 sub resolve_domains {
-    my @domain = @_;
+    my @domain = cp_domains();
     my $nameserver = '8.8.8.8';
     my $resolver = Net::DNS::Resolver->new;
     my $query;
-    my $ip;
+    my %ips;
 
     foreach(@domain) {
 
@@ -78,25 +88,27 @@ sub resolve_domains {
             foreach my $rr($query->answer) {
                 if($rr->type eq "A") {
                     my $ip = $rr->address;
-                    compare_domain($ip);
-                    next;
+                    $ips{$_} = $ip;
                 }
-
             }    
         }
-    }    
+    }
+    return %ips;    
 }
 
 #Get domains into hash
 
 sub cp_domains {
+    my @domains = ();
+    
     open(my $fh, $domainFile) or die "Coult not open file '$domainFile'";
         while (my $row = <$fh>) {
           chomp $row;
           my @domain = split /:/, $row;
-          resolve_domains($domain[0]);   
-        }
+          push(@domains, @domain); 
+    }
     close($fh);
+    return @domains;
 }
 
 #Get server's IP
@@ -109,10 +121,7 @@ sub get_servip {
     for my $if (@interfaces) {
         push(@ips, $if->address); 
     }
-    return unless @public_ip = grep(!/127\.0\.0\.1/, @ips);
-    compare_domain(@public_ip);
+    
+   return @public_ip = grep(!/127\.0\.0\.1/, @ips);
 
 }
-
-
-
