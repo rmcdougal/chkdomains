@@ -29,7 +29,6 @@ if (-e $domainFile && -e $iscPanel ) {
 
 #Executing main functions
 
-
 #Pretty printing
 
 sub print_warning {
@@ -53,23 +52,57 @@ sub print_information {
 
 #Compare domain's IP
 
-compare_domain();
+output();
+
+sub output {
+
+ #Assigning hash references
+ my ($r_hosted, $l_hosted) = compare_domain();
+    
+ #Printing the remote domains
+    for my $remote (keys %$r_hosted) {
+
+        print_warning(" Not pointing to the server: $remote: $r_hosted->{$remote}");
+
+    }
+
+ #Printing the local domains
+ 
+    for my $local (keys %$l_hosted) {
+
+        print_information(" Pointing to the server: $local: $l_hosted->{$local}");
+
+    }
+}
+
+#compare_domain();
 
 sub compare_domain {
   
     my %domain_and_remote_ips = resolve_domains();
     my @server_ips = get_servip();
-    #my @domains = cp_domains();
+    my %locally_hosted = ();
+    my %remote_domain  = ();
 
     foreach my $domain(keys %domain_and_remote_ips) {  
-    
         foreach my $server_ip(@server_ips) {
-        if($domain_and_remote_ips{$domain} eq $server_ip) {
-
-            print $domain_and_remote_ips{$domain}."$domain";
+            if($domain_and_remote_ips{$domain} eq $server_ip) {
+                $locally_hosted{$domain} = $server_ip
+            }
         }
-      }
     }   
+
+    foreach my $r_domain(keys %domain_and_remote_ips) {
+        foreach my $server_ip(@server_ips) {
+            if($domain_and_remote_ips{$r_domain} ne $server_ip) {
+                $remote_domain{$r_domain} = $domain_and_remote_ips{$r_domain}; 
+            }
+        }
+    }
+
+ #   print Dumper %remote_domain;
+    return(\%remote_domain, \%locally_hosted);
+
 }
 
 #Resolve domains
