@@ -17,15 +17,7 @@ my $domainFile = '/etc/userdomains';
 my $iscPanel = '/usr/local/cpanel/version';
 
 
-if (-e $domainFile && -e $iscPanel ) {
-    
-  my $iscP='1'; #For later use.
-
-} else {
-
-    print_warning("This script is only useful on cPanel servers with valid domains");
-
-}
+return unless -e $domainFile && -e $iscPanel or die("Not a cPanel server");
 
 #Executing main functions
 
@@ -35,20 +27,15 @@ sub print_warning {
 
 my $text = shift // '';
     return if $text eq '';
-
-    print BOLD RED ON_BLACK '[WARN] *';
-    print BOLD WHITE ON_BLACK "$text\n";
+    print BOLD WHITE ON_BLACK "\\_$text\n";
 }
 
 sub print_information {
-
     my $text = shift // '';
     return if $text eq '';
-    print BOLD GREEN ON_BLACK '[INFO] *';
-    print BOLD WHITE ON_BLACK "$text\n";
 
+    print BOLD WHITE ON_BLACK "\\_$text\n";
 }
-
 
 #Compare domain's IP
 
@@ -56,27 +43,31 @@ output();
 
 sub output {
 
- #Assigning hash references
+#Assigning hash references
  my ($r_hosted, $l_hosted) = compare_domain();
     
  #Printing the remote domains
-    for my $remote (keys %$r_hosted) {
-
-        print_warning(" Not pointing to the server: $remote: $r_hosted->{$remote}");
-
+    if(defined($r_hosted)) {
+        print BOLD RED ON_BLACK "[WARN] Domains not pointing to the server:\n";
+        
+        for my $remote (keys %$r_hosted) {
+        print_warning("$remote: $r_hosted->{$remote}");
+        
+        }
     }
 
  #Printing the local domains
- 
-    for my $local (keys %$l_hosted) {
-
-        print_information(" Pointing to the server: $local: $l_hosted->{$local}");
-
+    if(defined($l_hosted)) {
+    
+        print BOLD GREEN ON_BLACK "[INFO] Domains pointing to the server:\n";
+        for my $local (keys %$l_hosted) {
+        print_information("$local: $l_hosted->{$local}");
+        
+        }
     }
 }
 
 #compare_domain();
-
 sub compare_domain {
   
     my %domain_and_remote_ips = resolve_domains();
@@ -87,8 +78,9 @@ sub compare_domain {
     foreach my $domain(keys %domain_and_remote_ips) {  
         foreach my $server_ip(@server_ips) {
             if($domain_and_remote_ips{$domain} eq $server_ip) {
-                $locally_hosted{$domain} = $server_ip
-            }
+                $locally_hosted{$domain} = $server_ip;
+                 
+           }
         }
     }   
 
@@ -99,8 +91,21 @@ sub compare_domain {
             }
         }
     }
+ 
+#Prevent duplicated output
 
- #   print Dumper %remote_domain;
+    foreach my $de_duplicated(keys %locally_hosted) {
+        foreach my $duplicated(keys %remote_domain) {
+            if($de_duplicated eq $duplicated){
+
+                delete $remote_domain{$de_duplicated};
+
+            }
+        }
+    }     
+
+
+#print Dumper %remote_domain;
     return(\%remote_domain, \%locally_hosted);
 
 }
@@ -134,27 +139,44 @@ sub resolve_domains {
 sub cp_domains {
     my @domains = ();
     
-    open(my $fh, $domainFile) or die "Coult not open file '$domainFile'";
-        while (my $row = <$fh>) {
+    open(my $FH, $domainFile) or die "Coult not open file '$domainFile'";
+        while (my $row = <$FH>) {
           chomp $row;
           my @domain = split /:/, $row;
           push(@domains, @domain); 
     }
-    close($fh);
+    close($FH);
     return @domains;
 }
 
 #Get server's IP
 
 sub get_servip {
-   
-    my @public_ip = ();
-    my @ips = ();
-    my @interfaces = IO::Interface::Simple->interfaces;
-    for my $if (@interfaces) {
-        push(@ips, $if->address); 
-    }
-    
-   return @public_ip = grep(!/127\.0\.0\.1/, @ips);
 
+    #Modify the function to look for NAT IPs
+    my @ips = ();
+    my @public_ip = ();
+    my %ip = ();
+    my $cpnat_file = '/var/cpanel/cpnat';
+    if(-e $cpnat_file) {
+
+        open FH, '<', $cpnat_file or die "Could not open file '$cpnat_file'";
+        while (my $row = <FH>) {
+            chomp $row;
+                push(@ips, $row);
+        }  
+        foreach my $ip(@ips) {
+            %ip = split /\s+/, $ip;
+            push(@public_ip, values %ip); 
+        }
+        close $cpnat_file;
+        return @public_ip;
+    }       
+    else {
+        my @interfaces = IO::Interface::Simple->interfaces;
+        for my $if (@interfaces) {
+        push(@ips, $if->address); 
+        }   
+     return @public_ip = grep(!/127\.0\.0\.1/, @ips);
+    }
 }
