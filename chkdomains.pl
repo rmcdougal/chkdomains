@@ -16,7 +16,6 @@ $Term::ANSIColor::AUTORESET = 1;
 my $domainFile = '/etc/userdomains';
 my $iscPanel = '/usr/local/cpanel/version';
 
-
 return unless -e $domainFile && -e $iscPanel or die("Not a cPanel server");
 
 #Executing main functions
@@ -33,7 +32,6 @@ my $text = shift // '';
 sub print_information {
     my $text = shift // '';
     return if $text eq '';
-
     print BOLD WHITE ON_BLACK "\\_$text\n";
 }
 
@@ -49,37 +47,30 @@ sub output {
  #Printing the remote domains
     if(defined($r_hosted)) {
         print BOLD RED ON_BLACK "[WARN] Domains not pointing to the server:\n";
-        
         for my $remote (keys %$r_hosted) {
         print_warning("$remote: $r_hosted->{$remote}");
-        
         }
     }
 
  #Printing the local domains
     if(defined($l_hosted)) {
-    
         print BOLD GREEN ON_BLACK "[INFO] Domains pointing to the server:\n";
         for my $local (keys %$l_hosted) {
         print_information("$local: $l_hosted->{$local}");
-        
         }
     }
 }
 
 #compare_domain();
 sub compare_domain {
-  
     my %domain_and_remote_ips = resolve_domains();
     my @server_ips = get_servip();
     my %locally_hosted = ();
     my %remote_domain  = ();
-
     foreach my $domain(keys %domain_and_remote_ips) {  
         foreach my $server_ip(@server_ips) {
             if($domain_and_remote_ips{$domain} eq $server_ip) {
                 $locally_hosted{$domain} = $server_ip;
-                 
            }
         }
     }   
@@ -103,11 +94,7 @@ sub compare_domain {
             }
         }
     }     
-
-
-#print Dumper %remote_domain;
     return(\%remote_domain, \%locally_hosted);
-
 }
 
 #Resolve domains
@@ -120,7 +107,6 @@ sub resolve_domains {
     my %ips;
 
     foreach(@domain) {
-
         $query = $resolver->search($_);    
         if($query) {
             foreach my $rr($query->answer) {
@@ -138,7 +124,6 @@ sub resolve_domains {
 
 sub cp_domains {
     my @domains = ();
-    
     open(my $FH, $domainFile) or die "Coult not open file '$domainFile'";
         while (my $row = <$FH>) {
           chomp $row;
@@ -159,7 +144,6 @@ sub get_servip {
     my %ip = ();
     my $cpnat_file = '/var/cpanel/cpnat';
     if(-e $cpnat_file) {
-
         open FH, '<', $cpnat_file or die "Could not open file '$cpnat_file'";
         while (my $row = <FH>) {
             chomp $row;
